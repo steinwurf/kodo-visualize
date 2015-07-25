@@ -1,0 +1,8 @@
+#! /usr/bin/env python
+# encoding: utf-8
+
+bld.program(
+    features='cxx',
+    source=bld.path.ant_glob('visualizer.cpp'),
+    target='visualizer',
+    use=['kodo_visualize', 'kodo_includes', 'SDL2', 'SDL2_image'])
