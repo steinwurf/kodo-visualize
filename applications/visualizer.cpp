@@ -101,7 +101,6 @@ int main()
         decoder->read_payload(payload.data());
 
         image_viewer.display_decoding(decoder);
-        SDL_Delay(100);
     }
     SDL_Delay(1000);
 

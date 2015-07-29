@@ -5,7 +5,7 @@
 #include <vector>
 #include <functional>
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include "i_renderable.hpp"
 

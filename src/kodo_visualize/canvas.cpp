@@ -5,7 +5,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include "i_renderable.hpp"
 

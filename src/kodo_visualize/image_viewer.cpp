@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <mutex>
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include "image_format.hpp"
 

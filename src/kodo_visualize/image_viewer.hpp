@@ -4,7 +4,7 @@
 #include <mutex>
 
 #include <sak/storage.hpp>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include "i_renderable.hpp"
 #include "image_format.hpp"
