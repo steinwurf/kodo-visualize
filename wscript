@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 import os
+import platform
 
 APPNAME = 'kodo-visualize'
 VERSION = '0.0.0'
@@ -116,9 +117,17 @@ def configure(conf):
         lib_dir = os.path.join(path, 'lib')
 
         if conf.is_mkspec_platform('windows'):
-            target = conf.env.MSVC_TARGETS[0]
+            if platform.machine().endswith('64'):
+                target = 'x64'
+            else:
+                target = 'x86'
+
+            if hasattr(conf.env, 'MSVC_TARGETS'):
+                target = conf.env.MSVC_TARGETS[0]
+
             if 'amd64' in target:
                 target = 'x64'
+
             lib_dir = os.path.join(lib_dir, target)
 
         conf.check_cxx(
