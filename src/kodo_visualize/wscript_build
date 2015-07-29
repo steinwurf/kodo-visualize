@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # encoding: utf-8
 
-use_flags = ['sak', 'SDL2', 'SDL2_image']
+use_flags = ['sak', 'SDL2', 'SDL2_IMAGE']
 
 if bld.is_mkspec_platform('linux'):
     use_flags += ['PTHREAD']

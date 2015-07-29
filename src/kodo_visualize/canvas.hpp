@@ -7,6 +7,9 @@
 
 #include "i_renderable.hpp"
 
+// Fix build on windows
+#undef main
+
 namespace kodo_visualize
 {
     class canvas

@@ -137,16 +137,14 @@ def configure(conf):
         conf.env['INCLUDES_{}'.format(lib)] = [os.path.join(path, 'include')]
 
     if conf.is_mkspec_platform('linux'):
-        conf.check_cfg(package='sdl2',
-                       args='--cflags --libs',
-                       uselib_store='SDL2')
+        conf.check_cfg(package='sdl2', args='--cflags --libs')
     else:
         locate_lib_manually('SDL2', 'sdl2_path')
 
     if conf.is_mkspec_platform('linux'):
-        conf.check_cxx(lib='SDL2_image', uselib_store='SDL2_image')
+        conf.check_cxx(lib='SDL2_image')
     else:
-        locate_lib_manually('SDL2_image', 'sdl2_image_path')
+        locate_lib_manually('SDL2_IMAGE', 'sdl2_image_path')
 
     if conf.is_mkspec_platform('linux'):
         if not conf.env['LIB_PTHREAD']:
