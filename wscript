@@ -122,7 +122,7 @@ def configure(conf):
             else:
                 target = 'x86'
 
-            if hasattr(conf.env, 'MSVC_TARGETS'):
+            if len(conf.env.MSVC_TARGETS) > 0:
                 target = conf.env.MSVC_TARGETS[0]
 
             if 'amd64' in target:
