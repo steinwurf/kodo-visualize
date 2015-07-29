@@ -7,7 +7,7 @@
 #include <SDL2/SDL.h>
 
 #include "i_renderable.hpp"
-#include "pixel_format.hpp"
+#include "image_format.hpp"
 
 namespace kodo_visualize
 {
@@ -16,14 +16,14 @@ namespace kodo_visualize
 
     public:
 
-        image_viewer(pixel_format format, uint32_t width, uint32_t height,
+        image_viewer(image_format format, uint32_t width, uint32_t height,
             uint32_t x, uint32_t y);
 
         void render(SDL_Renderer* renderer);
         ~image_viewer();
 
         template<class Decoder>
-        void copy_symbols(Decoder decoder)
+        void display_decoding(Decoder decoder)
         {
             std::lock_guard<std::mutex> lock(m_lock);
 

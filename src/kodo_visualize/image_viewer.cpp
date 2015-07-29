@@ -3,14 +3,14 @@
 
 #include <SDL2/SDL.h>
 
-#include "pixel_format.hpp"
+#include "image_format.hpp"
 
 #include "image_viewer.hpp"
 
 namespace kodo_visualize
 {
 
-    image_viewer::image_viewer(pixel_format format, uint32_t width,
+    image_viewer::image_viewer(image_format format, uint32_t width,
         uint32_t height, uint32_t x, uint32_t y):
         m_width(width),
         m_height(height),
@@ -21,11 +21,22 @@ namespace kodo_visualize
             0,
             m_width,
             m_height,
-            24,
-            format.r_mask,
-            format.g_mask,
-            format.b_mask,
-            format.a_mask);
+            format.m_bits_per_pixel,
+            format.m_r_mask,
+            format.m_g_mask,
+            format.m_b_mask,
+            format.m_a_mask);
+
+        // We need a palette if we
+        if (format.m_bits_per_pixel <= 8)
+        {
+            SDL_SetPaletteColors(
+                m_surface->format->palette,
+                format.m_palette.data(),
+                0,
+                format.m_palette.size());
+        }
+
         m_size =  m_surface->h * m_surface->pitch;
     }
 

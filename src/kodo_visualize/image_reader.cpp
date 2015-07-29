@@ -6,7 +6,7 @@
 #include <SDL2/SDL.h>
 #include <SDL_image.h>
 
-#include "pixel_format.hpp"
+#include "image_format.hpp"
 
 #include "image_reader.hpp"
 
@@ -17,12 +17,28 @@ namespace kodo_visualize
         SDL_Surface* image = IMG_Load(filename.c_str());
         assert(image);
 
-        m_format = {
+        // We do not handle palettes
+        m_format = image_format(
+            image->format->BitsPerPixel,
             image->format->Rmask,
             image->format->Gmask,
             image->format->Bmask,
-            image->format->Amask
-        };
+            image->format->Amask);
+
+        if (image->format->palette)
+        {
+            auto palette = image->format->palette;
+            for (int32_t i = 0; i < palette->ncolors; ++i)
+            {
+                auto color = palette->colors[i];
+                m_format.m_palette.push_back({
+                    color.r,
+                    color.g,
+                    color.b,
+                    color.a
+                });
+            }
+        }
 
         m_width = image->w;
         m_height = image->h;
@@ -37,7 +53,7 @@ namespace kodo_visualize
         SDL_FreeSurface(image);
     }
 
-    pixel_format image_reader::format() const
+    image_format image_reader::format() const
     {
         return m_format;
     }

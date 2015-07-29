@@ -3,8 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-
-#include "pixel_format.hpp"
+#include "image_format.hpp"
 
 namespace kodo_visualize
 {
@@ -15,7 +14,7 @@ namespace kodo_visualize
 
         image_reader(const std::string& filename);
 
-        pixel_format format() const;
+        image_format format() const;
         uint32_t width() const;
         uint32_t height() const;
         uint32_t pitch() const;
@@ -30,6 +29,7 @@ namespace kodo_visualize
         uint32_t m_pitch;
         uint32_t m_size;
 
-        pixel_format m_format;
+        image_format m_format;
+        std::vector<SDL_Color> m_palette;
     };
 }

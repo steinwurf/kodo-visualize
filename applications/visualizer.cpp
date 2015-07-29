@@ -4,7 +4,6 @@
 // http://www.steinwurf.com/licensing
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <iostream>
 #include <functional>
@@ -20,20 +19,39 @@
 #include <kodo_visualize/encode_state_viewer.hpp>
 #include <kodo_visualize/image_reader.hpp>
 #include <kodo_visualize/image_viewer.hpp>
-#include <kodo_visualize/pixel_format.hpp>
 
 int main()
 {
     kodo_visualize::image_reader image("lena.jpg");
 
-    kodo_visualize::encode_state_viewer encode_state_viewer(image.height(), 0, 0);
+    uint32_t size_x = 0;
+    uint32_t size_y = 0;
+
+    kodo_visualize::encode_state_viewer encode_state_viewer(
+        image.height(),
+        size_x,
+        size_y);
+
+    size_x += image.height();
 
     kodo_visualize::image_viewer image_viewer(
-        image.format(), image.width(), image.height(), image.width(), 0);
-    kodo_visualize::decode_state_viewer
-        decode_state_viewer(image.height(), image.width() * 2, 0);
+        image.format(),
+        image.width(),
+        image.height(),
+        size_x,
+        size_y);
 
-    kodo_visualize::canvas canvas(image.width() * 3, image.height());
+    size_x += image.width();
+
+    kodo_visualize::decode_state_viewer decode_state_viewer(
+        image.height(),
+        size_x,
+        size_y);
+
+    size_x += image.height();
+    size_y += image.height();
+
+    kodo_visualize::canvas canvas(size_x, size_y);
 
     canvas.add(&encode_state_viewer);
     canvas.add(&image_viewer);
@@ -75,14 +93,17 @@ int main()
     {
         // Encode a packet into the payload buffer
         encoder->write_payload(payload.data());
+
         if (rand() % 2)
             continue;
 
         // Pass that packet to the decoder
         decoder->read_payload(payload.data());
 
-        image_viewer.copy_symbols(decoder);
+        image_viewer.display_decoding(decoder);
+        SDL_Delay(100);
     }
+    SDL_Delay(1000);
 
     canvas.stop();
 }

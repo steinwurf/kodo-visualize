@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # encoding: utf-8
 
+import os
+
 APPNAME = 'kodo-visualize'
 VERSION = '0.0.0'
 
@@ -67,6 +69,20 @@ def options(opt):
     opt.load('wurf_dependency_bundle')
     opt.load('wurf_tools')
 
+    opt.add_option(
+        '--sdl2_path',
+        help='Path to SDL2 lib',
+        action="store",
+        type="string",
+        default=None)
+
+    opt.add_option(
+        '--sdl2_image_path',
+        help='Path to SDL2_image lib',
+        action="store",
+        type="string",
+        default=None)
+
 
 def configure(conf):
 
@@ -89,12 +105,39 @@ def configure(conf):
         recurse_helper(conf, 'meta')
         recurse_helper(conf, 'sak')
 
-    conf.check_cfg(package='sdl2',
-                   args='--cflags --libs',
-                   uselib_store='SDL2')
+    def locate_lib_manually(lib, option):
+        path = getattr(conf.options, option)
+        if not path:
+            conf.fatal('Please specify path to the {lib} using the '
+                       '--{option} option.'.format(lib=lib, option=option))
 
-    conf.check_cxx(lib='SDL2_gfx', uselib_store='SDL2_gfx')
-    conf.check_cxx(lib='SDL2_image', uselib_store='SDL2_image')
+        path = os.path.abspath(os.path.expanduser(path))
+
+        lib_dir = os.path.join(path, 'lib')
+
+        if conf.is_mkspec_platform('windows'):
+            target = conf.env.MSVC_TARGETS[0]
+            if 'amd64' in target:
+                target = 'x64'
+            lib_dir = os.path.join(lib_dir, target)
+
+        conf.check_cxx(
+            lib=lib,
+            libpath=[lib_dir])
+
+        conf.env['INCLUDES_{}'.format(lib)] = [os.path.join(path, 'include')]
+
+    if conf.is_mkspec_platform('linux'):
+        conf.check_cfg(package='sdl2',
+                       args='--cflags --libs',
+                       uselib_store='SDL2')
+    else:
+        locate_lib_manually('SDL2', 'sdl2_path')
+
+    if conf.is_mkspec_platform('linux'):
+        conf.check_cxx(lib='SDL2_image', uselib_store='SDL2_image')
+    else:
+        locate_lib_manually('SDL2_image', 'sdl2_image_path')
 
     if conf.is_mkspec_platform('linux'):
         if not conf.env['LIB_PTHREAD']:
