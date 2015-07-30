@@ -44,7 +44,7 @@ namespace kodo_visualize
     void canvas::run()
     {
         m_running = true;
-        SDL_Init(SDL_INIT_EVERYTHING);
+        assert(SDL_Init(SDL_INIT_EVERYTHING) == 0);
 
         SDL_Window* window = SDL_CreateWindow(
             "Canvas",

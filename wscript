@@ -84,6 +84,13 @@ def options(opt):
         type="string",
         default=None)
 
+    opt.add_option(
+        '--sdl2_ttf_path',
+        help='Path to SDL2_tff lib',
+        action="store",
+        type="string",
+        default=None)
+
 
 def configure(conf):
 
@@ -138,13 +145,12 @@ def configure(conf):
 
     if conf.is_mkspec_platform('linux') or conf.is_mkspec_platform('mac'):
         conf.check_cfg(package='sdl2', args='--cflags --libs')
+        conf.check_cfg(package='SDL2_image', args='--cflags --libs')
+        conf.check_cfg(package='SDL2_ttf', args='--cflags --libs')
     else:
         locate_lib_manually('SDL2', 'sdl2_path')
-
-    if conf.is_mkspec_platform('linux') or conf.is_mkspec_platform('mac'):
-        conf.check_cfg(package='SDL2_image', args='--cflags --libs')
-    else:
         locate_lib_manually('SDL2_IMAGE', 'sdl2_image_path')
+        locate_lib_manually('SDL2_TTF', 'sdl2_ttf_path')
 
     if conf.is_mkspec_platform('linux'):
         if not conf.env['LIB_PTHREAD']:
