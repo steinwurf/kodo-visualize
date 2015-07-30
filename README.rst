@@ -8,26 +8,55 @@ making visualizations of the encoding and decoding using kodo.
 .. contents:: Table of Contents:
    :local:
 
-Building
-========
+Getting Started
+===============
 
-To build kodo-visualize, you need the standard kodo requirements. Additionally
-kodo-visualize also requires the SDL library. SDL is a cross-platform multimedia
-library which enables writing to the graphics framebuffer.
+First off make sure you have followed the guide for getting started with kodo.
+
+http://kodo-docs.steinwurf.com/en/latest/getting_started.html
+
+When you have completed this, you are ready to install the SDL library on which
+the kodo-visual library is based. SDL is a cross-platform multimedia library.
+Depending on you system different approaches are needed.
 
 Linux
 -----
 Use your package manager to install the following (or equivalent) packages::
 
-    sudo aptitude install git python g++ build-essential libsdl2-dev libsdl2-image-dev
+    sudo aptitude install libsdl2-dev libsdl2-image-dev
 
-MacOS
------
-Not available.
+You are now ready to configure the project::
+
+    waf configure
 
 Windows
 -------
-Not available.
+Download SDL2 and SDL2_image - make sure you pick the Development libraries
+(and **not** the Runtime ones).
+Now unpack the zip files in a folder of your choosing, I picked ``C:\SDL2`` and
+``C:\SDL2_image`` respectively.
+
+You are not ready to configure the project by specifying the path to the two
+libraries::
+
+
+    waf configure --sdl2_path=path_to_sdl2 --sdl2_image_path=path_to_sdl2_image
+
+
+MacOS
+-----
+Install pkg-config, libsdl2, and libsdl2_image using macports::
+
+    sudo port pkgconfig
+    sudo port libsdl2
+    sudo port libsdl2_image
+
+Other package managers may or may not work.
+
+After installing the three packages, you should be able to configure the
+project::
+
+    waf configure
 
 Usage
 =====
@@ -58,4 +87,3 @@ these properties are available as members on the image reader.
 
 To show the progress of the decoding, the ``display_decoding`` method should be
 called during the decoding process.
-
