@@ -98,9 +98,9 @@ called during the decoding process.
 
 Text
 ----
-The ``test_viewer`` shows a text on the screen. You need to set the font for
-for this to work. This is done using ``set_font``, note you need to set use the
-path to the font and not just the name.
+The ``test_viewer`` shows a text on the screen. A font is needed before text can
+be printet. The font can be set using the ``set_font`` method. Note, to set the
+font a path to the font file is needed - not just the name.
 
 To File
 -------
