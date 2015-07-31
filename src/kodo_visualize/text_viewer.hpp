@@ -31,12 +31,24 @@ namespace kodo_visualize
 
         void render(SDL_Renderer* renderer);
 
+        int32_t width();
+
+        int32_t height();
+
         ~text_viewer();
+
+    private:
+
+        std::vector<SDL_Surface*> generate_surfaces();
+        void calculate_dimentions();
 
     private:
 
         int32_t m_x;
         int32_t m_y;
+        int32_t m_width;
+        int32_t m_height;
+        bool m_dirty;
         SDL_Color m_color;
         TTF_Font* m_font;
 

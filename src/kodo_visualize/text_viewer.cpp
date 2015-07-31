@@ -3,6 +3,7 @@
 // See accompanying file LICENSE.rst or
 // http://www.steinwurf.com/licensing
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <string>
@@ -20,6 +21,9 @@ namespace kodo_visualize
     text_viewer::text_viewer(int32_t x, int32_t y):
         m_x(x),
         m_y(y),
+        m_width(0),
+        m_height(0),
+        m_dirty(true),
         m_font(NULL)
     {
         m_color = { 255, 255, 255, 255 };
@@ -31,6 +35,7 @@ namespace kodo_visualize
 
     void text_viewer::set_text(const std::string& text)
     {
+        m_dirty = true;
         m_text = text;
     }
 
@@ -41,6 +46,7 @@ namespace kodo_visualize
 
     void text_viewer::set_font(const std::string& path_to_font, uint32_t size)
     {
+        m_dirty = true;
         if (m_font)
             TTF_CloseFont(m_font);
         m_font = TTF_OpenFont(path_to_font.c_str(), size);
@@ -49,35 +55,77 @@ namespace kodo_visualize
 
     void text_viewer::render(SDL_Renderer* renderer)
     {
+        auto surfaces = generate_surfaces();
+
+        int32_t y_offset = 0;
+        for (auto& surface : surfaces)
+        {
+            SDL_Rect rect = {
+                m_x,
+                m_y + y_offset,
+                surface->w,
+                surface->h
+
+            };
+            y_offset += surface->h;
+
+            SDL_Texture* texture = SDL_CreateTextureFromSurface(
+                renderer, surface);
+
+            SDL_RenderCopy(renderer, texture, 0, &rect);
+            SDL_FreeSurface(surface);
+        }
+    }
+
+    int32_t text_viewer::width()
+    {
+        calculate_dimentions();
+        return m_width;
+    }
+
+    int32_t text_viewer::height()
+    {
+        calculate_dimentions();
+        return m_height;
+    }
+
+    std::vector<SDL_Surface*> text_viewer::generate_surfaces()
+    {
+        std::vector<SDL_Surface*> textures;
+
         if (m_text.empty())
-            return;
+            return textures;
 
         // make sure we have a font.
         assert(m_font);
 
-        int32_t y_offset = 0;
         std::istringstream text_stream(m_text);
         std::string line;
         while (std::getline(text_stream, line))
         {
             SDL_Surface* text_surface = TTF_RenderText_Solid(
                 m_font, line.c_str(), m_color);
-            SDL_Texture* texture = SDL_CreateTextureFromSurface(
-                renderer, text_surface);
-            SDL_FreeSurface(text_surface);
-            int32_t width;
-            int32_t height;
-            SDL_QueryTexture(texture, NULL, NULL, &width, &height);
-            SDL_Rect rect = {
-                m_x,
-                m_y + y_offset,
-                width,
-                height
-
-            };
-            SDL_RenderCopy(renderer, texture, 0, &rect);
-            y_offset += height;
+            textures.push_back(text_surface);
         }
+
+        return textures;
+    }
+
+    void text_viewer::calculate_dimentions()
+    {
+        if (!m_dirty)
+            return;
+
+        auto surfaces = generate_surfaces();
+
+        for (auto& surface : surfaces)
+        {
+            m_width = std::max(m_width, surface->w);
+            m_height += surface->h;
+            SDL_FreeSurface(surface);
+        }
+
+        m_dirty = false;
     }
 
     text_viewer::~text_viewer()
