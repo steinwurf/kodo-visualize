@@ -3,15 +3,11 @@
 // See accompanying file LICENSE.rst or
 // http://www.steinwurf.com/licensing
 
-#pragma once
+#include <gtest/gtest.h>
 
-#include <SDL.h>
-
-namespace kodo_visualize
+GTEST_API_ int main(int argc, char** argv)
 {
-    class i_renderable
-    {
-    public:
-        virtual void render(SDL_Renderer* renderer) = 0;
-    };
+    testing::InitGoogleTest(&argc, argv);
+
+    return RUN_ALL_TESTS();
 }

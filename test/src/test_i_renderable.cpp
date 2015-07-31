@@ -3,15 +3,6 @@
 // See accompanying file LICENSE.rst or
 // http://www.steinwurf.com/licensing
 
-#pragma once
-
-#include <SDL.h>
-
-namespace kodo_visualize
-{
-    class i_renderable
-    {
-    public:
-        virtual void render(SDL_Renderer* renderer) = 0;
-    };
-}
+// i_renderable is a purely virtual interface - therefore we can only check if
+// it's includeable.
+#include <kodo_visualize/i_renderable.hpp>

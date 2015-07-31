@@ -1,3 +1,8 @@
+// Copyright Steinwurf ApS 2015.
+// Distributed under the "STEINWURF RESEARCH LICENSE 1.0".
+// See accompanying file LICENSE.rst or
+// http://www.steinwurf.com/licensing
+
 #include <cstdint>
 #include <mutex>
 
@@ -10,8 +15,8 @@
 namespace kodo_visualize
 {
 
-    image_viewer::image_viewer(image_format format, uint32_t width,
-        uint32_t height, uint32_t x, uint32_t y):
+    image_viewer::image_viewer(image_format format, int32_t width,
+        int32_t height, int32_t x, int32_t y):
         m_width(width),
         m_height(height),
         m_x(x),
@@ -27,7 +32,7 @@ namespace kodo_visualize
             format.m_b_mask,
             format.m_a_mask);
 
-        // We need a palette if we
+        // We need a palette if the number fo bits for each pixel is 8 or less
         if (format.m_bits_per_pixel <= 8)
         {
             SDL_SetPaletteColors(
@@ -43,14 +48,9 @@ namespace kodo_visualize
     void image_viewer::render(SDL_Renderer* renderer)
     {
         std::lock_guard<std::mutex> lock(m_lock);
-        SDL_Texture* texture =
-            SDL_CreateTextureFromSurface(renderer, m_surface);
-        SDL_Rect rect = {
-            (int)m_x,
-            (int)m_y,
-            (int)m_width,
-            (int)m_height
-        };
+        SDL_Texture* texture = SDL_CreateTextureFromSurface(
+            renderer, m_surface);
+        SDL_Rect rect = { m_x, m_y, m_width, m_height };
         SDL_RenderCopy(renderer, texture, 0, &rect);
     }
 

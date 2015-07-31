@@ -1,3 +1,8 @@
+// Copyright Steinwurf ApS 2015.
+// Distributed under the "STEINWURF RESEARCH LICENSE 1.0".
+// See accompanying file LICENSE.rst or
+// http://www.steinwurf.com/licensing
+
 #pragma once
 
 #include <cstdint>
@@ -11,7 +16,12 @@ namespace kodo_visualize
 
     public:
 
-        image_format()
+        image_format():
+            m_bits_per_pixel(0),
+            m_r_mask(0),
+            m_g_mask(0),
+            m_b_mask(0),
+            m_a_mask(0)
         { }
 
         image_format(uint8_t bits_per_pixel, uint32_t r_mask,

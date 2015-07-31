@@ -1,3 +1,8 @@
+// Copyright Steinwurf ApS 2015.
+// Distributed under the "STEINWURF RESEARCH LICENSE 1.0".
+// See accompanying file LICENSE.rst or
+// http://www.steinwurf.com/licensing
+
 #pragma once
 
 #include <cassert>
@@ -36,6 +41,5 @@ namespace kodo_visualize
         TTF_Font* m_font;
 
         std::string m_text;
-
     };
 }

@@ -1,3 +1,8 @@
+// Copyright Steinwurf ApS 2015.
+// Distributed under the "STEINWURF RESEARCH LICENSE 1.0".
+// See accompanying file LICENSE.rst or
+// http://www.steinwurf.com/licensing
+
 #include <cstdint>
 #include <mutex>
 #include <vector>
@@ -11,11 +16,11 @@
 
 namespace kodo_visualize
 {
-    state_viewer::state_viewer(uint32_t size, uint32_t x, uint32_t y):
+    state_viewer::state_viewer(int32_t size, int32_t x, int32_t y):
         i_renderable(),
         m_size(size),
-        m_canvas_x(x),
-        m_canvas_y(y)
+        m_x(x),
+        m_y(y)
     { }
 
     void state_viewer::render(SDL_Renderer* renderer)
@@ -24,32 +29,24 @@ namespace kodo_visualize
         if (m_code_state.size() == 0)
             return;
 
-        /// @todo don't call the square size diameter. don't use radius?!
-        uint32_t diameter = m_size / m_code_state.size();
-        uint32_t radius = diameter / 2;
-        uint32_t y = m_canvas_y + radius;
+        int32_t rect_size = m_size / m_code_state.size();
+        int32_t symbol_y = m_y + rect_size / 2;
 
         for (auto& symbol : m_code_state)
         {
-            uint32_t x = m_canvas_x + radius;
+            int32_t symbol_x = m_x + rect_size / 2;
             for (auto& data : symbol)
             {
                 if (data != 0)
                 {
                     uint8_t color = 255 - (data % 255);
-                    SDL_Rect rect = {
-                        (int)x,
-                        (int)y,
-                        (int)diameter,
-                        (int)diameter
-                    };
+                    SDL_Rect rect = {symbol_x, symbol_y, rect_size, rect_size};
                     SDL_SetRenderDrawColor(renderer, color, color, color, 255);
                     SDL_RenderFillRect(renderer, &rect);
                 }
-
-                x += diameter;
+                symbol_x += rect_size;
             }
-            y += diameter;
+            symbol_y += rect_size;
         }
     }
 

@@ -37,6 +37,11 @@ def options(opt):
         major_version=19))
 
     bundle.add_dependency(opt, resolve.ResolveGitMajorVersion(
+        name='gtest',
+        git_repository='github.com/steinwurf/gtest.git',
+        major_version=2))
+
+    bundle.add_dependency(opt, resolve.ResolveGitMajorVersion(
         name='kodo',
         git_repository='github.com/steinwurf/kodo.git',
         major_version=28))
@@ -107,6 +112,7 @@ def configure(conf):
         recurse_helper(conf, 'boost')
         recurse_helper(conf, 'cpuid')
         recurse_helper(conf, 'fifi')
+        recurse_helper(conf, 'gtest')
         recurse_helper(conf, 'kodo')
         recurse_helper(conf, 'platform')
         recurse_helper(conf, 'recycle')
@@ -167,15 +173,19 @@ def build(bld):
         recurse_helper(bld, 'boost')
         recurse_helper(bld, 'cpuid')
         recurse_helper(bld, 'fifi')
+        recurse_helper(bld, 'gtest')
         recurse_helper(bld, 'kodo')
         recurse_helper(bld, 'platform')
         recurse_helper(bld, 'recycle')
         recurse_helper(bld, 'meta')
         recurse_helper(bld, 'sak')
 
+        bld.recurse('test')
+
+        bld.recurse('applications')
+
     bld.recurse('src/kodo_visualize')
 
-    bld.recurse('applications')
 
     bld.env.append_unique(
         'DEFINES_STEINWURF_VERSION',

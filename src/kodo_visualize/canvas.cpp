@@ -1,3 +1,8 @@
+// Copyright Steinwurf ApS 2015.
+// Distributed under the "STEINWURF RESEARCH LICENSE 1.0".
+// See accompanying file LICENSE.rst or
+// http://www.steinwurf.com/licensing
+
 #include <cstdint>
 #include <thread>
 
@@ -44,6 +49,7 @@ namespace kodo_visualize
     void canvas::run()
     {
         m_running = true;
+
         assert(SDL_Init(SDL_INIT_EVERYTHING) == 0);
 
         SDL_Window* window = SDL_CreateWindow(
@@ -56,7 +62,6 @@ namespace kodo_visualize
 
         SDL_Renderer* renderer = SDL_CreateRenderer(
             window, -1, SDL_RENDERER_ACCELERATED);
-
         m_started.notify_all();
         while (m_running)
         {

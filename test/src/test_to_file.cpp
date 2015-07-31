@@ -3,15 +3,11 @@
 // See accompanying file LICENSE.rst or
 // http://www.steinwurf.com/licensing
 
-#pragma once
+#include <kodo_visualize/to_file.hpp>
 
-#include <SDL.h>
+#include <gtest/gtest.h>
 
-namespace kodo_visualize
+TEST(test_to_file, init)
 {
-    class i_renderable
-    {
-    public:
-        virtual void render(SDL_Renderer* renderer) = 0;
-    };
+    kodo_visualize::to_file to_file("test");
 }

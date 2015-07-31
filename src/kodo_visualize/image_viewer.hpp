@@ -1,3 +1,8 @@
+// Copyright Steinwurf ApS 2015.
+// Distributed under the "STEINWURF RESEARCH LICENSE 1.0".
+// See accompanying file LICENSE.rst or
+// http://www.steinwurf.com/licensing
+
 #pragma once
 
 #include <cstdint>
@@ -16,8 +21,8 @@ namespace kodo_visualize
 
     public:
 
-        image_viewer(image_format format, uint32_t width, uint32_t height,
-            uint32_t x, uint32_t y);
+        image_viewer(image_format format, int32_t width, int32_t height,
+            int32_t x, int32_t y);
 
         void render(SDL_Renderer* renderer);
         ~image_viewer();
@@ -34,11 +39,11 @@ namespace kodo_visualize
 
     private:
 
-        uint32_t m_width;
-        uint32_t m_height;
-        uint32_t m_size;
-        uint32_t m_x;
-        uint32_t m_y;
+        int32_t m_width;
+        int32_t m_height;
+        int32_t m_size;
+        int32_t m_x;
+        int32_t m_y;
 
         SDL_Surface* m_surface;
 
