@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <mutex>
 
-#include <sak/storage.hpp>
 #include <SDL.h>
 
 #include "i_renderable.hpp"
@@ -28,12 +27,12 @@ namespace kodo_visualize
         ~image_viewer();
 
         template<class Decoder>
-        void display_decoding(Decoder decoder)
+        void display_decoding(Decoder& decoder)
         {
             std::lock_guard<std::mutex> lock(m_lock);
 
             SDL_LockSurface(m_surface);
-            decoder->copy_symbols(sak::storage(m_surface->pixels, m_size));
+            decoder.copy_from_symbols((uint8_t*)m_surface->pixels, m_size);
             SDL_UnlockSurface(m_surface);
         }
 

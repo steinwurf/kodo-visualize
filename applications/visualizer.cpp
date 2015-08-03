@@ -8,12 +8,13 @@
 #include <iostream>
 #include <functional>
 #include <vector>
+#include <unordered_map>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
 
-#include <kodo/rlnc/full_vector_codes.hpp>
+#include <kodocpp/kodocpp.hpp>
 
 #include <kodo_visualize/canvas.hpp>
 
@@ -27,12 +28,16 @@
 #include <sak/storage.hpp>
 
 namespace {
-    std::string generate_stats(uint32_t symbols, uint32_t symbol_size,
+    std::string generate_stats(uint32_t encoder_rank, uint32_t decoder_rank,
+        uint32_t symbols, uint32_t symbol_size, uint32_t error_rate,
         uint32_t packets, uint32_t lost, uint32_t linear_dependent)
     {
         std::stringstream stats;
-        stats << "Symbols:          " << symbols << std::endl
+        stats << "Encoder Rank:     " << encoder_rank << std::endl
+              << "Decoder Rank:     " << decoder_rank << std::endl
+              << "Symbols:          " << symbols << std::endl
               << "Symbol Size:      " << symbol_size << std::endl
+              << "Error Rate:       " << error_rate << "%"<< std::endl
               << "Total Packets:    " << packets << std::endl
               << "Lost Packets:     " << lost << std::endl
               << "Linear Dependent: " << linear_dependent;
@@ -54,13 +59,20 @@ int main(int argc, char* argv[])
 
     description.add_options()
         ("help,h", "Produce help message")
-        ("image-file,i", po::value<std::string>()->required(),
+        ("image-file", po::value<std::string>()->required(),
             "Image file to encode/decode (required)")
-        ("error-rate,e", po::value<uint8_t>(),
+        ("error-rate", po::value<uint32_t>()->default_value(50U),
             "The likelyhood of packet loss in percent.")
-        ("field,f", po::value<uint8_t>(),
+        ("delay", po::value<uint32_t>()->default_value(0U),
+            "Delay the coding process (symbols * ms).")
+        ("non-systematic", "Use non-systematic encoding.")
+        ("algorithm", po::value<std::string>()->default_value("full_rlnc"),
+            "The algorithm to use.")
+        ("field", po::value<std::string>()->default_value("binary8"),
             "The field to use.")
-        ("record_dir,r", po::value<std::string>(),
+        ("data-availablity", po::value<uint32_t>()->default_value(50U),
+            "The likelyhood of packet loss in percent.")
+        ("record_dir", po::value<std::string>(),
             "Create recording of simulation");
 
     po::variables_map vm;
@@ -80,6 +92,8 @@ int main(int argc, char* argv[])
                 << description << std::endl;
       return 1;
     }
+    uint32_t error_rate = vm["error-rate"].as<uint32_t>();
+    assert(error_rate < 100U);
 
     std::string image_file = vm["image-file"].as<std::string>();
     kodo_visualize::image_reader image(image_file);
@@ -101,8 +115,8 @@ int main(int argc, char* argv[])
     uint32_t lost = 0;
     uint32_t linear_dependent = 0;
 
-    text_viewer.set_text(
-        generate_stats(symbols, symbol_size, packets, lost, linear_dependent));
+    text_viewer.set_text(generate_stats(0, 0, symbols, symbol_size, error_rate,
+        packets, lost, linear_dependent));
 
     size_x += text_viewer.width() + 10;
 
@@ -139,52 +153,125 @@ int main(int argc, char* argv[])
 
     canvas.start();
 
+    std::unordered_map<std::string, kodo_finite_field> finte_field_map({
+        {"binary", kodo_binary},
+        {"binary4", kodo_binary4},
+        {"binary8", kodo_binary8},
+        {"binary16", kodo_binary16},
+        {"prime2325", kodo_prime2325}
+    });
+    assert(finte_field_map.count(vm["field"].as<std::string>()));
+    kodo_finite_field finte_field = finte_field_map[vm["field"].as<std::string>()];
 
-    // Typdefs for the encoder/decoder type we wish to use
-    using rlnc_encoder = kodo::rlnc::full_vector_encoder<
-        fifi::binary8, meta::typelist<kodo::enable_trace>>;
-    using rlnc_decoder = kodo::rlnc::full_vector_decoder<
-        fifi::binary8, meta::typelist<kodo::enable_trace>>;
+    std::unordered_map<std::string, kodo_code_type> algorithm_map({
+        {"full_rlnc", kodo_full_rlnc},
+        {"on_the_fly", kodo_on_the_fly},
+        {"sliding_window", kodo_sliding_window},
+        {"seed_rlnc", kodo_seed_rlnc}
+    });
+    assert(algorithm_map.count(vm["algorithm"].as<std::string>()));
+    kodo_code_type code_type = algorithm_map[vm["algorithm"].as<std::string>()];
 
-    // In the following we will make an encoder/decoder factory.
-    // The factories are used to build actual encoders/decoders
-    rlnc_encoder::factory encoder_factory(symbols, symbol_size);
-    auto encoder = encoder_factory.build();
+    // Initilization of encoder and decoder
+    kodocpp::encoder_factory encoder_factory(
+        code_type,
+        finte_field,
+        symbols,
+        symbol_size,
+        true);
 
-    rlnc_decoder::factory decoder_factory(symbols, symbol_size);
-    auto decoder = decoder_factory.build();
+    kodocpp::encoder encoder = encoder_factory.build();
+
+    kodocpp::decoder_factory decoder_factory(
+        code_type,
+        finte_field,
+        symbols,
+        symbol_size,
+        true);
+
+    kodocpp::decoder decoder = decoder_factory.build();
 
     encode_state_viewer.set_callback(encoder);
     decode_state_viewer.set_callback(decoder);
 
     // Allocate some storage for a "payload" the payload is what we would
     // eventually send over a network
-    std::vector<uint8_t> payload(encoder->payload_size());
+    std::vector<uint8_t> payload(encoder.payload_size());
 
-    // Assign the data buffer to the encoder so that we may start
-    // to produce encoded symbols from it
-    encoder->set_symbols(sak::storage(image.data(), image.size()));
+    uint32_t data_availablity = vm["data-availablity"].as<uint32_t>();
+    assert(data_availablity < 100U);
 
-    while (!decoder->is_complete())
+    if (code_type != kodo_on_the_fly && code_type != kodo_sliding_window)
     {
-        text_viewer.set_text(generate_stats(symbols, symbol_size, packets, lost,
-            linear_dependent));
-        // Encode a packet into the payload buffer
-        encoder->write_payload(payload.data());
-        packets += 1;
+        // Assign the data buffer to the encoder so that we may start
+        // to produce encoded symbols from it
+        encoder.set_symbols(image.data(), image.size());
+    }
+    else
+    {
+        encode_state_viewer.set_symbols(symbols);
+    }
 
-        if (rand() % 2)
+    if (vm.count("non-systematic"))
+    {
+        encoder.set_systematic_off();
+    }
+
+    while (!decoder.is_complete())
+    {
+        SDL_Delay(vm["delay"].as<uint32_t>());
+
+        if ((code_type == kodo_on_the_fly || code_type == kodo_sliding_window))
         {
-            lost += 1;
-            continue;
+            if (encoder.rank() < encoder.symbols() &&
+                ((uint32_t)(rand() % 100)) > data_availablity)
+            {
+                //The rank of an encoder indicates how many symbols have been
+                // added, i.e how many symbols are available for encoding
+                uint32_t rank = encoder.rank();
+
+                //Calculate the offset to the next symbol to instert
+                uint8_t* symbol = image.data() + (rank * encoder.symbol_size());
+
+                encoder.set_symbol(rank, symbol, encoder.symbol_size());
+            }
         }
 
-        uint32_t old_rank = decoder->rank();
-        // Pass that packet to the decoder
-        decoder->read_payload(payload.data());
+        if (encoder.rank() == 0)
+        {
+            goto print_stats;
+        }
 
-        if (decoder->rank() == old_rank)
-            linear_dependent += 1;
+        std::cout << encoder.rank() << std::endl;
+        // Encode a packet into the payload buffer
+        encoder.write_payload(payload.data());
+        packets += 1;
+
+        if (((uint32_t)(rand() % 101)) < error_rate)
+        {
+            lost += 1;
+            goto print_stats;
+        }
+        {
+            uint32_t old_rank = decoder.rank();
+            // Pass that packet to the decoder
+
+            decoder.read_payload(payload.data());
+
+            if (decoder.rank() == old_rank)
+                linear_dependent += 1;
+        }
+
+        print_stats:
+        text_viewer.set_text(generate_stats(
+            encoder.rank(),
+            decoder.rank(),
+            symbols,
+            symbol_size,
+            error_rate,
+            packets,
+            lost,
+            linear_dependent));
 
         image_viewer.display_decoding(decoder);
     }

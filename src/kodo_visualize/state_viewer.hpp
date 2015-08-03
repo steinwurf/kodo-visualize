@@ -31,9 +31,9 @@ namespace kodo_visualize
             const std::string& message) = 0;
 
         template<class Coder>
-        void set_callback(Coder coder)
+        void set_callback(Coder& coder)
         {
-            coder->set_trace_callback(std::bind(
+            coder.set_trace_callback(std::bind(
                 &state_viewer::trace_callback,
                 this,
                 std::placeholders::_1,

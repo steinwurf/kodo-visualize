@@ -3,10 +3,11 @@
 // See accompanying file LICENSE.rst or
 // http://www.steinwurf.com/licensing
 
-#include <vector>
+#include <cassert>
 #include <cstdint>
-#include <string>
 #include <sstream>
+#include <string>
+#include <vector>
 
 #include "encode_state_viewer.hpp"
 
@@ -39,8 +40,10 @@ namespace kodo_visualize
         }
 
         std::vector<uint32_t> symbol;
-        if (zone == std::string("symbol_index_before_write_uncoded_symbol"))
+        if (zone == std::string("symbol_index_after_write_uncoded_symbol"))
         {
+            // Make sure that symbols has been set.
+            assert(m_symbols > 0);
             std::istringstream message_stream(message);
             std::string line;
             while (std::getline(message_stream, line, ' '));
@@ -49,7 +52,7 @@ namespace kodo_visualize
             symbol.resize(m_symbols);
             symbol[index] = 255;
         }
-        else if(zone == std::string("coefficients_after_write_symbol"))
+        else if(zone == std::string("symbol_coefficients_after_write_symbol"))
         {
             std::istringstream message_stream(message.substr(3));
             std::string previous;
