@@ -221,7 +221,7 @@ int main(int argc, char* argv[])
     {
         SDL_Delay(vm["delay"].as<uint32_t>());
 
-        if ((code_type == kodo_on_the_fly || code_type == kodo_sliding_window))
+        if (code_type == kodo_on_the_fly || code_type == kodo_sliding_window)
         {
             if (encoder.rank() < encoder.symbols() &&
                 ((uint32_t)(rand() % 100)) > data_availablity)
@@ -242,7 +242,6 @@ int main(int argc, char* argv[])
             goto print_stats;
         }
 
-        std::cout << encoder.rank() << std::endl;
         // Encode a packet into the payload buffer
         encoder.write_payload(payload.data());
         packets += 1;
@@ -250,7 +249,7 @@ int main(int argc, char* argv[])
         if (((uint32_t)(rand() % 101)) < error_rate)
         {
             lost += 1;
-            goto print_stats;
+            goto decoder_feedback;
         }
         {
             uint32_t old_rank = decoder.rank();
@@ -262,7 +261,23 @@ int main(int argc, char* argv[])
                 linear_dependent += 1;
         }
 
+        decoder_feedback:
+
+        if (code_type == kodo_sliding_window)
+        {
+            std::vector<uint8_t> feedback(encoder.feedback_size());
+            decoder.write_feedback(feedback.data());
+
+            if (((uint32_t)(rand() % 101)) < error_rate)
+            {
+                goto print_stats;
+            }
+
+            encoder.read_feedback(feedback.data());
+        }
+
         print_stats:
+
         text_viewer.set_text(generate_stats(
             encoder.rank(),
             decoder.rank(),

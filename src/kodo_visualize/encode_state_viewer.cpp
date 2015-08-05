@@ -33,10 +33,21 @@ namespace kodo_visualize
                 lines.push_back(line);
             }
 
-            std::istringstream is(lines[lines.size() - 5]);
-            std::getline(is, line, ' ');
-            set_symbols(std::stoi(line) + 1);
-            return;
+            for (auto i = lines.size(); i-- > 0;)
+            {
+                std::istringstream is(lines[i]);
+                std::string previous_line;
+                while (std::getline(is, line, ' '))
+                {
+                    if (line == std::string("I:"))
+                    {
+                        // The last line was the one.
+                        set_symbols(std::stoi(previous_line) + 1);
+                        return;
+                    }
+                    previous_line = line;
+                }
+            }
         }
 
         std::vector<uint32_t> symbol;
