@@ -164,10 +164,10 @@ int main(int argc, char* argv[])
     kodo_finite_field finte_field = finte_field_map[vm["field"].as<std::string>()];
 
     std::unordered_map<std::string, kodo_code_type> algorithm_map({
-        {"full_rlnc", kodo_full_rlnc},
+        {"full_vector", kodo_full_vector},
         {"on_the_fly", kodo_on_the_fly},
         {"sliding_window", kodo_sliding_window},
-        {"seed_rlnc", kodo_seed_rlnc}
+        {"seed", kodo_seed}
     });
     assert(algorithm_map.count(vm["algorithm"].as<std::string>()));
     kodo_code_type code_type = algorithm_map[vm["algorithm"].as<std::string>()];
