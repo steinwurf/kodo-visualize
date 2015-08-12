@@ -15,6 +15,7 @@ TEST(test_image_reader, init)
 TEST(test_image_reader, check_stats)
 {
     kodo_visualize::image_reader image_reader("lena.jpg");
+
     auto format = image_reader.format();
 
     EXPECT_EQ(24u, format.m_bits_per_pixel);

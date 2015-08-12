@@ -13,12 +13,11 @@ bld.program(
     rpath=search_path,
     use=[
         'kodo_visualize',
-        'kodocpp_includes',
-        'kodoc',
+        'kodocpp_includes_static',
+        'kodoc_static',
         'boost_system',
         'boost_program_options',
-        'boost_filesystem',
-        'SDL2'
+        'boost_filesystem'
     ])
 
 bld(rule='cp ${SRC} ${TGT}', source='PressStart2P.ttf', target='../font.ttf')

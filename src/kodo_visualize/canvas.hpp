@@ -20,7 +20,7 @@ namespace kodo_visualize
     class canvas
     {
     public:
-        canvas(uint32_t width, uint32_t height);
+        canvas(uint32_t width, uint32_t height, double scale=1.0);
 
         void start();
         void stop();
@@ -35,6 +35,7 @@ namespace kodo_visualize
         bool m_running;
         uint32_t m_width;
         uint32_t m_height;
+        double m_scale;
 
         std::vector<i_renderable*> m_renderables;
         std::condition_variable m_started;

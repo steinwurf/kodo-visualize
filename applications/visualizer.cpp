@@ -9,6 +9,7 @@
 #include <functional>
 #include <vector>
 #include <unordered_map>
+#include <thread>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
@@ -27,270 +28,554 @@
 
 #include <sak/storage.hpp>
 
-namespace {
-    std::string generate_stats(uint32_t encoder_rank, uint32_t decoder_rank,
-        uint32_t symbols, uint32_t symbol_size, uint32_t error_rate,
-        uint32_t packets, uint32_t lost, uint32_t linear_dependent)
-    {
-        std::stringstream stats;
-        stats << "Encoder Rank:     " << encoder_rank << std::endl
-              << "Decoder Rank:     " << decoder_rank << std::endl
-              << "Symbols:          " << symbols << std::endl
-              << "Symbol Size:      " << symbol_size << std::endl
-              << "Error Rate:       " << error_rate << "%"<< std::endl
-              << "Total Packets:    " << packets << std::endl
-              << "Lost Packets:     " << lost << std::endl
-              << "Linear Dependent: " << linear_dependent;
-        return stats.str();
-    }
-}
-
-int main(int argc, char* argv[])
+namespace kodo_visualize
 {
-    namespace fs = boost::filesystem;
-    namespace po = boost::program_options;
+namespace
+{
 
-    // Get path of executable
-    auto executable_path = fs::system_complete(fs::path(argv[0])).parent_path();
-
-    // Get commandline arguments
-    std::string application_name = "Kodo Visualize App";
-    po::options_description description(application_name);
-
-    description.add_options()
-        ("help,h", "Produce help message")
-        ("image-file", po::value<std::string>()->required(),
-            "Image file to encode/decode (required)")
-        ("error-rate", po::value<uint32_t>()->default_value(50U),
-            "The likelyhood of packet loss in percent.")
-        ("delay", po::value<uint32_t>()->default_value(0U),
-            "Delay the coding process (symbols * ms).")
-        ("non-systematic", "Use non-systematic encoding.")
-        ("algorithm", po::value<std::string>()->default_value("full_rlnc"),
-            "The algorithm to use.")
-        ("field", po::value<std::string>()->default_value("binary8"),
-            "The field to use.")
-        ("data-availablity", po::value<uint32_t>()->default_value(50U),
-            "The likelyhood of packet loss in percent.")
-        ("record_dir", po::value<std::string>(),
-            "Create recording of simulation");
-
-    po::variables_map vm;
-    try
+    struct context
     {
-        po::store(po::parse_command_line(argc, argv, description), vm);
-        if (vm.count("help"))
+
+    public:
+        context():
+            non_systematic(false),
+            algorithm(kodo_full_vector),
+            field(kodo_binary),
+            image_file(),
+            data_availablity(0),
+            decoder_rank(0),
+            delay(0),
+            encoder_rank(0),
+            feedback_per(0),
+            linear_dependent(0),
+            lost(0),
+            packets(0),
+            per(0),
+            symbol_size(0),
+            symbols(0),
+            font_file(),
+            disable_decoder_state(false),
+            disable_encoder_state(false),
+            field_map({
+                {"binary", kodo_binary},
+                {"binary4", kodo_binary4},
+                {"binary8", kodo_binary8},
+                {"binary16", kodo_binary16},
+                {"prime2325", kodo_prime2325}
+            }),
+            algorithm_map({
+                {"full_vector", kodo_full_vector},
+                {"on_the_fly", kodo_on_the_fly},
+                {"sliding_window", kodo_sliding_window},
+                {"seed", kodo_seed},
+                {"perpetual", kodo_perpetual}
+            })
+        { }
+
+        std::string to_string() const
         {
-            std::cout << description << std::endl;
-            return 0;
-        }
-        po::notify(vm);
-    }
-    catch(po::error& e)
-    {
-      std::cerr << "ERROR: " << e.what() << std::endl
-                << description << std::endl;
-      return 1;
-    }
-    uint32_t error_rate = vm["error-rate"].as<uint32_t>();
-    assert(error_rate < 100U);
-
-    std::string image_file = vm["image-file"].as<std::string>();
-    kodo_visualize::image_reader image(image_file);
-
-    uint32_t size_x = 0;
-    uint32_t size_y = 0;
-
-    kodo_visualize::text_viewer text_viewer(size_x, size_y);
-
-    std::string font_file = (executable_path / fs::path("font.ttf")).string();
-
-    text_viewer.set_font(font_file, 12);
-
-    // Set the number of symbols (i.e. the generation size in RLNC
-    // terminology) and the size of a symbol in bytes
-    uint32_t symbols = image.height();
-    uint32_t symbol_size = image.pitch();
-    uint32_t packets = 0;
-    uint32_t lost = 0;
-    uint32_t linear_dependent = 0;
-
-    text_viewer.set_text(generate_stats(0, 0, symbols, symbol_size, error_rate,
-        packets, lost, linear_dependent));
-
-    size_x += text_viewer.width() + 10;
-
-    kodo_visualize::encode_state_viewer encode_state_viewer(
-        image.height(),
-        size_x,
-        size_y);
-
-    size_x += image.height();
-
-    kodo_visualize::image_viewer image_viewer(
-        image.format(),
-        image.width(),
-        image.height(),
-        size_x,
-        size_y);
-
-    size_x += image.width();
-
-    kodo_visualize::decode_state_viewer decode_state_viewer(
-        image.height(),
-        size_x,
-        size_y);
-
-    size_x += image.height();
-    size_y += image.height();
-
-    kodo_visualize::canvas canvas(size_x, size_y);
-
-    canvas.add(&encode_state_viewer);
-    canvas.add(&image_viewer);
-    canvas.add(&decode_state_viewer);
-    canvas.add(&text_viewer);
-
-    canvas.start();
-
-    std::unordered_map<std::string, kodo_finite_field> finte_field_map({
-        {"binary", kodo_binary},
-        {"binary4", kodo_binary4},
-        {"binary8", kodo_binary8},
-        {"binary16", kodo_binary16},
-        {"prime2325", kodo_prime2325}
-    });
-    assert(finte_field_map.count(vm["field"].as<std::string>()));
-    kodo_finite_field finte_field = finte_field_map[vm["field"].as<std::string>()];
-
-    std::unordered_map<std::string, kodo_code_type> algorithm_map({
-        {"full_vector", kodo_full_vector},
-        {"on_the_fly", kodo_on_the_fly},
-        {"sliding_window", kodo_sliding_window},
-        {"seed", kodo_seed}
-    });
-    assert(algorithm_map.count(vm["algorithm"].as<std::string>()));
-    kodo_code_type code_type = algorithm_map[vm["algorithm"].as<std::string>()];
-
-    // Initilization of encoder and decoder
-    kodocpp::encoder_factory encoder_factory(
-        code_type,
-        finte_field,
-        symbols,
-        symbol_size,
-        true);
-
-    kodocpp::encoder encoder = encoder_factory.build();
-
-    kodocpp::decoder_factory decoder_factory(
-        code_type,
-        finte_field,
-        symbols,
-        symbol_size,
-        true);
-
-    kodocpp::decoder decoder = decoder_factory.build();
-
-    encode_state_viewer.set_callback(encoder);
-    decode_state_viewer.set_callback(decoder);
-
-    // Allocate some storage for a "payload" the payload is what we would
-    // eventually send over a network
-    std::vector<uint8_t> payload(encoder.payload_size());
-
-    uint32_t data_availablity = vm["data-availablity"].as<uint32_t>();
-    assert(data_availablity < 100U);
-
-    if (code_type != kodo_on_the_fly && code_type != kodo_sliding_window)
-    {
-        // Assign the data buffer to the encoder so that we may start
-        // to produce encoded symbols from it
-        encoder.set_symbols(image.data(), image.size());
-    }
-    else
-    {
-        encode_state_viewer.set_symbols(symbols);
-    }
-
-    if (vm.count("non-systematic"))
-    {
-        encoder.set_systematic_off();
-    }
-
-    while (!decoder.is_complete())
-    {
-        SDL_Delay(vm["delay"].as<uint32_t>());
-
-        if (code_type == kodo_on_the_fly || code_type == kodo_sliding_window)
-        {
-            if (encoder.rank() < encoder.symbols() &&
-                ((uint32_t)(rand() % 100)) > data_availablity)
+            std::stringstream stats;
+            for (auto& stat_to_print : stats_to_print)
             {
-                //The rank of an encoder indicates how many symbols have been
-                // added, i.e how many symbols are available for encoding
-                uint32_t rank = encoder.rank();
+                bool all = stat_to_print == "all";
+                if (stat_to_print == "algorithm" || all)
+                {
+                    std::string algorithm_str;
+                    for (auto& algorithm_pair : algorithm_map)
+                    {
+                        if (algorithm_pair.second == algorithm)
+                        {
+                            algorithm_str = algorithm_pair.first;
+                            break;
+                        }
+                    }
 
-                //Calculate the offset to the next symbol to instert
-                uint8_t* symbol = image.data() + (rank * encoder.symbol_size());
+                    stats << "algorithm:        " << algorithm_str << std::endl;
+                }
 
-                encoder.set_symbol(rank, symbol, encoder.symbol_size());
+                if (stat_to_print == "data_availablity" || all)
+                    stats << "data_availablity: " << data_availablity << std::endl;
+                if (stat_to_print == "decoder_rank" || all)
+                    stats << "decoder_rank:     " << decoder_rank << std::endl;
+                if (stat_to_print == "delay" || all)
+                    stats << "delay:            " << delay << std::endl;
+                if (stat_to_print == "encoder_rank" || all)
+                    stats << "encoder_rank:     " << encoder_rank << std::endl;
+                if (stat_to_print == "feedback_per" || all)
+                    stats << "feedback_per:     " << feedback_per << std::endl;
+                if (stat_to_print == "field" || all)
+                {
+                    std::string field_str;
+                    for (auto& field_pair : field_map)
+                    {
+                        if (field_pair.second == field)
+                        {
+                            field_str = field_pair.first;
+                            break;
+                        }
+                    }
+                    stats << "field:            " << field_str << std::endl;
+                }
+
+                if (stat_to_print == "image_file" || all)
+                    stats << "image_file:       " << image_file << std::endl;
+                if (stat_to_print == "linear_dependent" || all)
+                    stats << "linear_dependent: " << linear_dependent << std::endl;
+                if (stat_to_print == "lost" || all)
+                    stats << "lost:             " << lost << std::endl;
+                if (stat_to_print == "non_systematic" || all)
+                    stats << "non_systematic:   " << non_systematic << std::endl;
+                if (stat_to_print == "packets" || all)
+                    stats << "packets:          " << packets << std::endl;
+                if (stat_to_print == "per" || all)
+                    stats << "per:              " << per << std::endl;
+                if (stat_to_print == "symbol_size" || all)
+                    stats << "symbol_size:      " << symbol_size << std::endl;
+                if (stat_to_print == "symbols" || all)
+                    stats << "symbols:          " << symbols << std::endl;
+            }
+
+            return stats.str();
+        }
+
+    public:
+
+        bool non_systematic;
+
+        kodo_code_type algorithm;
+
+        kodo_finite_field field;
+
+        std::string image_file;
+
+        uint32_t data_availablity;
+        uint32_t decoder_rank;
+        uint32_t delay;
+        uint32_t encoder_rank;
+        uint32_t feedback_per;
+        uint32_t linear_dependent;
+        uint32_t lost;
+        uint32_t packets;
+        uint32_t per;
+        uint32_t symbol_size;
+        uint32_t symbols;
+
+        std::string font_file;
+        bool disable_decoder_state;
+        bool disable_encoder_state;
+
+        std::vector<std::string> stats_to_print;
+        std::unordered_map<std::string, kodo_finite_field> field_map;
+        std::unordered_map<std::string, kodo_code_type> algorithm_map;
+    };
+
+    bool parse_args(int argc, char* argv[], context& c)
+    {
+        // Create context
+        namespace fs = boost::filesystem;
+        namespace po = boost::program_options;
+        // Get path of executable
+        auto executable_path = fs::system_complete(fs::path(argv[0])).parent_path();
+        c.font_file = (executable_path / fs::path("font.ttf")).string();
+
+        // Get commandline arguments
+        std::string application_name = "Kodo Visualize App";
+        po::options_description description(application_name);
+
+        description.add_options()
+            ("help,h", "Produce help message")
+            ("image-file", po::value<std::string>(),
+                "Image file to encode/decode (required if symbols and symbol_size "
+                "is not set).")
+            ("symbols", po::value<uint32_t>()->default_value(0U),
+                "Number of symbols (required if image-file hasn't been set).")
+            ("symbol-size", po::value<uint32_t>()->default_value(0U),
+                "Size of each symbol (required if image-file hasn't been set).")
+            ("per", po::value<uint32_t>()->default_value(50U),
+                "PER (Packet Error Rate) the likelyhood of packet loss in percent.")
+            ("feedback-per", po::value<uint32_t>()->default_value(0U),
+                "The likelyhood of feedback packets being lost in percent.")
+            ("delay", po::value<uint32_t>()->default_value(0U),
+                "Delay the coding process (symbols * ms).")
+            ("non-systematic", "Use non-systematic encoding.")
+            ("disable-encoder-state", "Don't show encoder state.")
+            ("disable-decoder-state", "Don't show decoder state.")
+            ("algorithm", po::value<std::string>()->default_value("full_vector"),
+                "The algorithm to use.")
+            ("field", po::value<std::string>()->default_value("binary8"),
+                "The field to use.")
+            ("data-availablity", po::value<uint32_t>()->default_value(50U),
+                "The likelyhood of packet loss in percent.")
+            ("scale", po::value<double>()->default_value(1.0),
+                "The scaling of the canvas.")
+            ("stats-to-print", po::value<std::vector<std::string>>()->multitoken(),
+                "List of statistics to be shown, use all to print all.")
+            ("record_dir", po::value<std::string>(),
+                "Create recording of simulation");
+
+        po::variables_map vm;
+        try
+        {
+            po::store(po::parse_command_line(argc, argv, description), vm);
+            if (vm.count("help"))
+            {
+                std::cout << description << std::endl;
+                return false;
+            }
+            po::notify(vm);
+        }
+        catch(po::error& e)
+        {
+            std::cerr << "ERROR: " << e.what() << std::endl
+                      << description << std::endl;
+            return false;
+        }
+
+        // PER
+        c.per = vm["per"].as<uint32_t>();
+        if (!(c.per < 100U))
+        {
+            std::cerr << "ERROR: PER should be a value between 0 and 100, "
+                      << "not " << c.per << std::endl;
+        }
+
+        // FEEDBACK PER
+        c.feedback_per = vm["feedback-per"].as<uint32_t>();
+        if (!(c.feedback_per < 100U))
+        {
+            std::cerr << "ERROR: Feedback PER should be a value between 0 "
+                      << "and 100, not " << c.feedback_per << std::endl;
+        }
+
+        // IMAGE FILE
+        if (vm.count("image-file"))
+        {
+            c.image_file = vm["image-file"].as<std::string>();
+        }
+
+        // FINITE FIELD
+        if (!c.field_map.count(vm["field"].as<std::string>()))
+        {
+            std::cerr << "ERROR: \"" << vm["field"].as<std::string>() << "\""
+                      << " is not a valid field." << std::endl
+                      << "Use either of these valid fields:" << std::endl;
+
+            for (auto& field : c.field_map)
+            {
+                std::cerr << "\t" << field.first << std::endl;
+            }
+            return false;
+        }
+        c.field = c.field_map[vm["field"].as<std::string>()];
+
+        // ALGORITHM
+        if (!c.algorithm_map.count(vm["algorithm"].as<std::string>()))
+        {
+            std::cerr << "ERROR: \"" << vm["algorithm"].as<std::string>() << "\""
+                      << " is not a valid algorithm." << std::endl
+                      << "Use either of these valid algorithms:" << std::endl;
+
+            for (auto& algorithm : c.algorithm_map)
+            {
+                std::cerr << "\t" << algorithm.first << std::endl;
+            }
+            return false;
+        }
+        c.algorithm = c.algorithm_map[vm["algorithm"].as<std::string>()];
+
+        // DATA AVAILABILITY
+        c.data_availablity = vm["data-availablity"].as<uint32_t>();
+        if (!(c.data_availablity < 100U))
+        {
+            std::cerr << "ERROR: Data availablity should be a value between "
+                      << "0 and 100, not " << c.data_availablity << std::endl;
+        }
+
+        // NON SYSTEMATIC
+        c.non_systematic = vm.count("non-systematic");
+
+        // DISABLE ENCODER STATE
+        c.disable_encoder_state = vm.count("disable-encoder-state");
+
+        // DISABLE DECODER STATE
+        c.disable_decoder_state = vm.count("disable-decoder-state");
+
+        // DELAY
+        c.delay = vm["delay"].as<uint32_t>();
+        if (vm.count("stats-to-print"))
+        {
+            c.stats_to_print = vm["stats-to-print"].as<std::vector<std::string>>();
+        }
+
+        // SYMBOLS
+        if (vm.count("symbols"))
+            c.symbols = vm["symbols"].as<uint32_t>();
+
+        // SYMBOL_SIZE
+        if (vm.count("symbol-size"))
+            c.symbol_size = vm["symbol-size"].as<uint32_t>();
+
+        // Verify that we have something to encode.
+        if (c.image_file.empty())
+        {
+            if (c.symbols == 0 || c.symbol_size == 0)
+            {
+                std::cerr << "ERROR: If image-file hasn't been set, both symbols "
+                             "and symbol-size needs to be set." << std::endl;
+                return false;
+            }
+        }
+        else if (c.symbols != 0 || c.symbol_size != 0)
+        {
+            std::cerr << "ERROR: If image-file has been set, neither symbols "
+                         "or symbol-size should to be set." << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    void run_visualization(context& c)
+    {
+        uint32_t size_x = 0;
+        uint32_t size_y = 0;
+
+        std::shared_ptr<text_viewer> stats_viewer;
+
+        if (c.stats_to_print.size() > 0)
+        {
+            stats_viewer = std::make_shared<text_viewer>(size_x,
+                size_y);
+
+            stats_viewer->set_font(c.font_file, 12);
+            stats_viewer->set_text(c.to_string());
+            size_x += stats_viewer->width() + 10;
+        }
+
+        // Set up visualization
+        std::shared_ptr<image_reader> image;
+        if (!c.image_file.empty())
+        {
+            assert(c.symbols == 0);
+            assert(c.symbol_size == 0);
+
+            image = std::make_shared<image_reader>(
+                c.image_file);
+            c.symbols = image->height();
+            c.symbol_size = image->pitch();
+        }
+
+        assert(c.symbols != 0);
+        assert(c.symbol_size != 0);
+
+        std::shared_ptr<encode_state_viewer> encoder_viewer;
+        if (!c.disable_encoder_state)
+        {
+            encoder_viewer = std::make_shared<encode_state_viewer>(
+                c.symbols,
+                size_x,
+                size_y);
+            size_x += c.symbols;
+        }
+
+        std::shared_ptr<image_viewer> decoded_image_viewer;
+        if (!c.image_file.empty())
+        {
+            decoded_image_viewer = std::make_shared<image_viewer>(
+                image->format(),
+                image->width(),
+                image->height(),
+                size_x,
+                size_y);
+            size_x += image->width();
+        }
+
+        std::shared_ptr<decode_state_viewer> decoder_viewer;
+        if (!c.disable_decoder_state)
+        {
+            decoder_viewer = std::make_shared<decode_state_viewer>(
+                c.symbols, size_x, size_y);
+            size_x += c.symbols;
+        }
+
+
+        size_y += c.symbols;
+
+        canvas canvas(size_x, size_y);
+        if (!c.disable_encoder_state)
+        {
+            canvas.add(encoder_viewer.get());
+        }
+        if (!c.image_file.empty())
+        {
+            canvas.add(decoded_image_viewer.get());
+        }
+        if (!c.disable_decoder_state)
+        {
+            canvas.add(decoder_viewer.get());
+        }
+
+        if (c.stats_to_print.size() > 0)
+        {
+            canvas.add(stats_viewer.get());
+        }
+
+        canvas.start();
+
+        // Initilization of encoder and decoder
+        kodocpp::encoder_factory encoder_factory(
+            c.algorithm,
+            c.field,
+            c.symbols,
+            c.symbol_size,
+            true);
+
+        kodocpp::encoder encoder = encoder_factory.build();
+
+        kodocpp::decoder_factory decoder_factory(
+            c.algorithm,
+            c.field,
+            c.symbols,
+            c.symbol_size,
+            true);
+
+        kodocpp::decoder decoder = decoder_factory.build();
+        if (!c.disable_encoder_state)
+        {
+            encoder_viewer->set_callback(encoder);
+        }
+        if (!c.disable_decoder_state)
+        {
+            decoder_viewer->set_callback(decoder);
+        }
+
+        // Allocate some storage for a "payload" the payload is what we would
+        // eventually send over a network
+        std::vector<uint8_t> payload(encoder.payload_size());
+
+        std::vector<uint8_t> data(encoder.block_size());
+        std::generate(data.begin(), data.end(), rand);
+
+        uint8_t* data_ptr = data.data();
+        uint32_t data_size = data.size();
+
+        if (!c.image_file.empty())
+        {
+            data_ptr = image->data();
+            data_size = image->size();
+        }
+
+        if (c.algorithm != kodo_on_the_fly &&
+            c.algorithm != kodo_sliding_window)
+        {
+            // Assign the data buffer to the encoder so that we may start
+            // to produce encoded symbols from it
+            encoder.set_symbols(data_ptr, data_size);
+        }
+        else
+        {
+            if (!c.disable_encoder_state)
+            {
+                encoder_viewer->set_symbols(c.symbols);
             }
         }
 
-        if (encoder.rank() == 0)
+        if (c.non_systematic)
         {
-            goto print_stats;
+            if (encoder.has_set_systematic_off())
+            {
+                encoder.set_systematic_off();
+            }
         }
 
-        // Encode a packet into the payload buffer
-        encoder.write_payload(payload.data());
-        packets += 1;
-
-        if (((uint32_t)(rand() % 101)) < error_rate)
+        while (!decoder.is_complete())
         {
-            lost += 1;
-            goto decoder_feedback;
-        }
-        {
-            uint32_t old_rank = decoder.rank();
-            // Pass that packet to the decoder
+            if (c.delay != 0)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(c.delay));
+            }
 
-            decoder.read_payload(payload.data());
+            if (c.algorithm == kodo_on_the_fly ||
+                c.algorithm == kodo_sliding_window)
+            {
+                if (encoder.rank() < encoder.symbols() &&
+                    ((uint32_t)(rand() % 100)) > c.data_availablity)
+                {
+                    //The rank of an encoder indicates how many symbols have been
+                    // added, i.e how many symbols are available for encoding
+                    uint32_t rank = encoder.rank();
 
-            if (decoder.rank() == old_rank)
-                linear_dependent += 1;
-        }
+                    //Calculate the offset to the next symbol to instert
+                    uint8_t* symbol = data_ptr + (rank * encoder.symbol_size());
 
-        decoder_feedback:
+                    encoder.set_symbol(rank, symbol, encoder.symbol_size());
+                }
+            }
 
-        if (code_type == kodo_sliding_window)
-        {
-            std::vector<uint8_t> feedback(encoder.feedback_size());
-            decoder.write_feedback(feedback.data());
-
-            if (((uint32_t)(rand() % 101)) < error_rate)
+            if (encoder.rank() == 0)
             {
                 goto print_stats;
             }
 
-            encoder.read_feedback(feedback.data());
+            // Encode a packet into the payload buffer
+            encoder.write_payload(payload.data());
+            c.packets += 1;
+
+            if (((uint32_t)(rand() % 101)) < c.per)
+            {
+                c.lost += 1;
+                goto decoder_feedback;
+            }
+            {
+                uint32_t old_rank = decoder.rank();
+                // Pass that packet to the decoder
+
+                decoder.read_payload(payload.data());
+
+                if (decoder.rank() == old_rank)
+                    c.linear_dependent += 1;
+            }
+
+            decoder_feedback:
+
+            if (c.algorithm == kodo_sliding_window)
+            {
+                std::vector<uint8_t> feedback(encoder.feedback_size());
+                decoder.write_feedback(feedback.data());
+
+                if (((uint32_t)(rand() % 101)) < c.feedback_per)
+                {
+                    goto print_stats;
+                }
+
+                encoder.read_feedback(feedback.data());
+            }
+
+            print_stats:
+
+            c.encoder_rank = encoder.rank();
+            c.decoder_rank = decoder.rank();
+
+            if (c.stats_to_print.size() > 0)
+            {
+                stats_viewer->set_text(c.to_string());
+            }
+
+            if (!c.image_file.empty())
+            {
+                decoded_image_viewer->display_decoding(decoder);
+            }
         }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
-        print_stats:
-
-        text_viewer.set_text(generate_stats(
-            encoder.rank(),
-            decoder.rank(),
-            symbols,
-            symbol_size,
-            error_rate,
-            packets,
-            lost,
-            linear_dependent));
-
-        image_viewer.display_decoding(decoder);
+        canvas.stop();
     }
-    SDL_Delay(1000);
+}
+}
 
-    canvas.stop();
+int main(int argc, char* argv[])
+{
+    kodo_visualize::context c;
+    if (kodo_visualize::parse_args(argc, argv, c))
+        kodo_visualize::run_visualization(c);
 }

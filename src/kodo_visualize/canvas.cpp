@@ -18,10 +18,11 @@
 
 namespace kodo_visualize
 {
-    canvas::canvas(uint32_t width, uint32_t height):
+    canvas::canvas(uint32_t width, uint32_t height, double scale):
         m_running(false),
         m_width(width + 1),
-        m_height(height + 1)
+        m_height(height + 1),
+        m_scale(scale)
     { }
 
     void canvas::start()
@@ -56,13 +57,16 @@ namespace kodo_visualize
             "Canvas",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
-            m_width,
-            m_height,
+            m_width * m_scale,
+            m_height * m_scale,
             SDL_WINDOW_BORDERLESS);
 
         SDL_Renderer* renderer = SDL_CreateRenderer(
             window, -1, SDL_RENDERER_ACCELERATED);
         m_started.notify_all();
+
+        SDL_RenderSetScale(renderer, m_scale, m_scale);
+
         while (m_running)
         {
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xFF);
