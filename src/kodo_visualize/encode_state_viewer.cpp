@@ -65,6 +65,8 @@ namespace kodo_visualize
         }
         else if(zone == std::string("symbol_coefficients_after_write_symbol"))
         {
+            // Make sure that symbols has been set.
+            assert(m_symbols > 0);
             std::istringstream message_stream(message.substr(3));
             std::string previous;
             std::string line;

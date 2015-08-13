@@ -198,8 +198,9 @@ def build(bld):
 
         bld.recurse('applications')
 
-    bld.recurse('src/kodo_visualize')
+        bld.recurse('examples/recoding')
 
+    bld.recurse('src/kodo_visualize')
 
     bld.env.append_unique(
         'DEFINES_STEINWURF_VERSION',

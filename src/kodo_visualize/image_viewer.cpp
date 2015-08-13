@@ -52,6 +52,7 @@ namespace kodo_visualize
             renderer, m_surface);
         SDL_Rect rect = { m_x, m_y, m_width, m_height };
         SDL_RenderCopy(renderer, texture, 0, &rect);
+        SDL_DestroyTexture(texture);
     }
 
     image_viewer::~image_viewer()

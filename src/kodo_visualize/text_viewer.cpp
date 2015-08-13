@@ -73,6 +73,7 @@ namespace kodo_visualize
                 renderer, surface);
 
             SDL_RenderCopy(renderer, texture, 0, &rect);
+            SDL_DestroyTexture(texture);
             SDL_FreeSurface(surface);
         }
     }
