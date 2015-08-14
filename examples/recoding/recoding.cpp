@@ -32,9 +32,6 @@ int main()
     decode_state_viewer recoder_decode_state_viewer(symbols, size_x, size_y);
     size_x += symbols;
 
-    size_x = 0;
-    size_y += symbols;
-
     encode_state_viewer recoder_encode_viewer(symbols, size_x, size_y);
     size_x += symbols;
 
@@ -72,14 +69,15 @@ int main()
     kodocpp::decoder recoder = decoder_factory.build();
     kodocpp::decoder sink = decoder_factory.build();
 
-    recoder_encode_viewer.set_symbols(symbols);
 
     source_encoder_viewer.set_callback(source);
 
-    auto cb = [&recoder_encode_viewer, &recoder_decode_state_viewer](const std::string& zone, const std::string& data)
+    // We need to manually set the symbols for the recoders encoding
+    // presentation.
+    recoder_encode_viewer.set_symbols(symbols);
+
+    auto cb = [&](const std::string& zone, const std::string& data)
     {
-        std::cout << zone << std::endl;
-        std::cout << zone << std::endl;
         recoder_encode_viewer.trace_callback(zone, data);
         recoder_decode_state_viewer.trace_callback(zone, data);
     };
@@ -90,13 +88,12 @@ int main()
 
     // Allocate some storage for a "payload" the payload is what we would
     // eventually send over a network
-    std::vector<uint8_t> payload(source.payload_size());
-
     std::vector<uint8_t> data(source.block_size());
     std::generate(data.begin(), data.end(), rand);
 
     source.set_symbols(data.data(), data.size());
 
+    std::vector<uint8_t> payload(source.payload_size());
     while (!sink.is_complete())
     {
         source.write_payload(payload.data());

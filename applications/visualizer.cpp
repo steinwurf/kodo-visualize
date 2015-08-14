@@ -31,7 +31,6 @@ namespace kodo_visualize
 {
 namespace
 {
-
     struct context
     {
 
@@ -39,7 +38,6 @@ namespace
         context():
             algorithm(kodo_full_vector),
             field(kodo_binary),
-            image_file(),
             symbols(0),
             symbol_size(0),
             non_systematic(false),
@@ -91,7 +89,8 @@ namespace
                         }
                     }
 
-                    stats << "algorithm:         " << algorithm_str << std::endl;
+                    stats << "algorithm:         " << algorithm_str
+                          << std::endl;
                 }
 
                 if (stat_to_print == "field" || all)
@@ -109,34 +108,66 @@ namespace
                 }
 
                 if (stat_to_print == "image_file" || all)
+                {
                     stats << "image_file:        " << image_file << std::endl;
+                }
                 if (stat_to_print == "symbols" || all)
+                {
                     stats << "symbols:           " << symbols << std::endl;
+                }
                 if (stat_to_print == "symbol_size" || all)
+                {
                     stats << "symbol_size:       " << symbol_size << std::endl;
+                }
                 if (stat_to_print == "non_systematic" || all)
-                    stats << "non_systematic:    " << non_systematic << std::endl;
+                {
+                    stats << "non_systematic:    " << non_systematic
+                          << std::endl;
+                }
                 if (stat_to_print == "per" || all)
+                {
                     stats << "per:               " << per << std::endl;
+                }
                 if (stat_to_print == "feedback_per" || all)
+                {
                     stats << "feedback_per:      " << feedback_per << std::endl;
+                }
                 if (stat_to_print == "data_availability" || all)
-                    stats << "data_availability: " << data_availability << std::endl;
+                {
+                    stats << "data_availability: " << data_availability
+                          << std::endl;
+                }
 
                 if (stat_to_print == "decoder_rank" || all)
+                {
                     stats << "decoder_rank:      " << decoder_rank << std::endl;
+                }
                 if (stat_to_print == "encoder_rank" || all)
+                {
                     stats << "encoder_rank:      " << encoder_rank << std::endl;
-                if (stat_to_print == "lost" || all)
-                    stats << "lost:              " << lost << std::endl;
-                if (stat_to_print == "lost_feedback" || all)
-                    stats << "lost_feedback:     " << lost_feedback << std::endl;
+                }
                 if (stat_to_print == "packets" || all)
+                {
                     stats << "packets:           " << packets << std::endl;
+                }
                 if (stat_to_print == "feedback" || all)
+                {
                     stats << "feedback:          " << feedback << std::endl;
+                }
+                if (stat_to_print == "lost" || all)
+                {
+                    stats << "lost:              " << lost << std::endl;
+                }
+                if (stat_to_print == "lost_feedback" || all)
+                {
+                    stats << "lost_feedback:     " << lost_feedback
+                          << std::endl;
+                }
                 if (stat_to_print == "linear_dependent" || all)
-                    stats << "linear_dependent:  " << linear_dependent << std::endl;
+                {
+                    stats << "linear_dependent:  " << linear_dependent
+                          << std::endl;
+                }
             }
 
             return stats.str();
@@ -182,7 +213,8 @@ namespace
         namespace fs = boost::filesystem;
         namespace po = boost::program_options;
         // Get path of executable
-        auto executable_path = fs::system_complete(fs::path(argv[0])).parent_path();
+        auto executable_path =
+            fs::system_complete(fs::path(argv[0])).parent_path();
         c.font_file = (executable_path / fs::path("font.ttf")).string();
 
         // Get commandline arguments
@@ -191,26 +223,29 @@ namespace
 
         description.add_options()
             ("help,h", "Produce help message")
-            ("algorithm", po::value<std::string>()->default_value("full_vector"),
+            ("algorithm",
+                po::value<std::string>()->default_value("full_vector"),
                 "The algorithm to use.")
             ("field", po::value<std::string>()->default_value("binary8"),
                 "The field to use.")
             ("image-file", po::value<std::string>(),
-                "Image file to encode/decode (required if symbols and symbol_size "
-                "is not set).")
+                "Image file to encode/decode (required if symbols and "
+                "symbol_size is not set).")
             ("symbols", po::value<uint32_t>(),
                 "Number of symbols (required if image-file hasn't been set).")
             ("symbol-size", po::value<uint32_t>(),
                 "Size of each symbol (required if image-file hasn't been set).")
             ("non-systematic", "Use non-systematic encoding.")
             ("per", po::value<uint32_t>()->default_value(50U),
-                "PER (Packet Error Rate) the likelihood of packet loss in percent.")
+                "PER (Packet Error Rate) the likelihood of packet loss in "
+                "percent.")
             ("feedback-per", po::value<uint32_t>()->default_value(50U),
                 "The likelihood of feedback packets being lost in percent.")
             ("data-availability", po::value<uint32_t>()->default_value(100U),
                 "The availability of new data in percent. Only relevant for "
                 "certain algorithms. A high number means high availability.")
-            ("stats-to-print", po::value<std::vector<std::string>>()->multitoken(),
+            ("stats-to-print",
+                po::value<std::vector<std::string>>()->multitoken(),
                 "List of statistics to be shown, use all to print all.")
             ("scale", po::value<double>()->default_value(1.0),
                 "The scaling of the canvas.")
@@ -321,7 +356,8 @@ namespace
         // STATS TO PRINT
         if (vm.count("stats-to-print"))
         {
-            c.stats_to_print = vm["stats-to-print"].as<std::vector<std::string>>();
+            c.stats_to_print =
+                vm["stats-to-print"].as<std::vector<std::string>>();
         }
 
         // SCALE
@@ -350,7 +386,8 @@ namespace
             if (!fs::exists(fs::path(c.recording_directory)))
             {
                 std::cerr << "ERROR: The given recoding path, \""
-                          << c.recording_directory << "\" does not exists." << std::endl;
+                          << c.recording_directory << "\" does not exists."
+                          << std::endl;
                 return false;
             }
         }
@@ -551,8 +588,9 @@ namespace
                 if (encoder.rank() < encoder.symbols() &&
                     ((uint32_t)(rand() % 100) + 1) < c.data_availability)
                 {
-                    //The rank of an encoder indicates how many symbols have been
-                    // added, i.e how many symbols are available for encoding
+                    //The rank of an encoder indicates how many symbols have
+                    // been added, i.e how many symbols are available for
+                    // encoding
                     uint32_t rank = encoder.rank();
 
                     //Calculate the offset to the next symbol to insert

@@ -1,19 +1,13 @@
 #! /usr/bin/env python
 # encoding: utf-8
 
-search_path = []
-
-if not bld.is_mkspec_platform('windows'):
-    search_path = ['.']
-
 bld.program(
     features='cxx',
     source='visualizer.cpp',
     target='visualizer',
-    rpath=search_path,
     use=[
         'kodo_visualize',
-        'kodocpp_includes_static',
+        'kodocpp_static_includes',
         'kodoc_static',
         'boost_system',
         'boost_program_options',

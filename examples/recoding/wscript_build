@@ -13,7 +13,7 @@ bld.program(
     rpath=search_path,
     use=[
         'kodo_visualize',
-        'kodocpp_includes_static',
+        'kodocpp_static_includes',
         'kodoc_static',
         'SDL2'
     ])
