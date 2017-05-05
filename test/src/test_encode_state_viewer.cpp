@@ -15,8 +15,6 @@ TEST(encode_state_viewer, init)
 TEST(encode_state_viewer, callback)
 {
     kodo_visualize::encode_state_viewer encode_state_viewer(10, 0, 0);
-
-    encode_state_viewer.trace_callback("not set_symbols", "random data");
     encode_state_viewer.trace_callback(
         "not symbol_index_before_write_uncoded_symbol", "random data");
     encode_state_viewer.trace_callback(

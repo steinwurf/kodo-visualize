@@ -26,13 +26,12 @@ namespace kodo_visualize
         void render(SDL_Renderer* renderer);
         ~image_viewer();
 
-        template<class Decoder>
-        void display_decoding(Decoder& decoder)
+        void display_decoding(const uint8_t* data)
         {
             std::lock_guard<std::mutex> lock(m_lock);
 
             SDL_LockSurface(m_surface);
-            decoder.copy_from_symbols((uint8_t*)m_surface->pixels, m_size);
+            std::copy(data, data + m_size, (uint8_t*)m_surface->pixels);
             SDL_UnlockSurface(m_surface);
         }
 

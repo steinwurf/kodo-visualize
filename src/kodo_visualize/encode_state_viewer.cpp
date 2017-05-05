@@ -18,43 +18,18 @@ namespace kodo_visualize
         state_viewer(size, x, y),
         m_symbols(0),
         m_index(0)
-    { }
+    {
+        set_symbols(size);
+    }
 
     void encode_state_viewer::trace_callback(const std::string& zone,
         const std::string& message)
     {
-        if (zone == std::string("set_symbols"))
-        {
-            std::vector<std::string> lines;
-            std::istringstream message_stream(message);
-            std::string line;
-            while (std::getline(message_stream, line))
-            {
-                lines.push_back(line);
-            }
-
-            for (auto i = lines.size(); i-- > 0;)
-            {
-                std::istringstream is(lines[i]);
-                std::string previous_line;
-                while (std::getline(is, line, ' '))
-                {
-                    if (line == std::string("I:"))
-                    {
-                        // The last line was the one.
-                        set_symbols(std::stoi(previous_line) + 1);
-                        return;
-                    }
-                    previous_line = line;
-                }
-            }
-        }
-
+        // Make sure that symbols has been set.
+        assert(m_symbols > 0);
         std::vector<uint32_t> symbol;
         if (zone == std::string("symbol_index_after_write_uncoded_symbol"))
         {
-            // Make sure that symbols has been set.
-            assert(m_symbols > 0);
             std::istringstream message_stream(message);
             std::string line;
             while (std::getline(message_stream, line, ' '));
