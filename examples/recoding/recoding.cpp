@@ -51,24 +51,21 @@ int main()
 
     // Initialization of encoder and decoder
     kodocpp::encoder_factory encoder_factory(
-        kodo_full_vector,
-        kodo_binary8,
+        kodocpp::codec::full_vector,
+        kodocpp::field::binary8,
         symbols,
-        symbol_size,
-        true);
+        symbol_size);
 
     kodocpp::encoder source = encoder_factory.build();
 
     kodocpp::decoder_factory decoder_factory(
-        kodo_full_vector,
-        kodo_binary8,
+        kodocpp::codec::full_vector,
+        kodocpp::field::binary8,
         symbols,
-        symbol_size,
-        true);
+        symbol_size);
 
     kodocpp::decoder recoder = decoder_factory.build();
     kodocpp::decoder sink = decoder_factory.build();
-
 
     source_encoder_viewer.set_callback(source);
 
@@ -91,7 +88,15 @@ int main()
     std::vector<uint8_t> data(source.block_size());
     std::generate(data.begin(), data.end(), rand);
 
-    source.set_symbols(data.data(), data.size());
+    source.set_const_symbols(data.data(), data.size());
+
+    // Set the storage for the recoder
+    std::vector<uint8_t> data_middle(recoder.block_size());
+    recoder.set_mutable_symbols(data_middle.data(), recoder.block_size());
+
+    // Set the storage for the decoder
+    std::vector<uint8_t> data_out(sink.block_size());
+    sink.set_mutable_symbols(data_out.data(), sink.block_size());
 
     std::vector<uint8_t> payload(source.payload_size());
     while (!sink.is_complete())

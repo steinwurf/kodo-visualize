@@ -23,11 +23,11 @@ Linux
 -----
 Use your package manager to install the following (or equivalent) packages::
 
-    sudo aptitude install libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
+    sudo apt-get install libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
 
 You are now ready to configure the project::
 
-    waf configure
+    ./waf configure
 
 Windows
 -------

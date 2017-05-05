@@ -5,5 +5,5 @@ bld.program(
     features='cxx test',
     source=bld.path.ant_glob('**/*.cpp'),
     target='kodo_visualize_tests',
-    test_files=bld.path.find_node('lena.jpg'),
+    test_files=['lena.jpg'],
     use=['kodo_visualize', 'gtest'])

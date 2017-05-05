@@ -8,6 +8,7 @@
 #include <cassert>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include <SDL.h>
 #include <SDL_ttf.h>
